@@ -1,21 +1,20 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
 
+# Base class for common fields
 class BookBase(BaseModel):
-    # Shared properties for books, used for data validation
-    title: str = Field(..., example="The Clean Coder")
-    author: str = Field(..., example="Robert C. Martin")
+    title: str
+    author: str
     description: Optional[str] = None
-    year: int = Field(..., gt=1800, le=2026)
+    year: int
 
+# Used when creating a book (what the user sends)
 class BookCreate(BookBase):
-    # Schema for creating a new book (no ID required from user)
     pass
 
+# Used when returning a book (what the API sends back, including the ID)
 class Book(BookBase):
-    # Schema for returning book data to the client (includes DB ID)
     id: int
 
     class Config:
-        # Tells Pydantic to read data even if it's not a dict (like an ORM model)
-        orm_mode = True
+        from_attributes = True # Allows compatibility with SQLAlchemy models
