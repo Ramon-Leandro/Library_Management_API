@@ -2,9 +2,12 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from . import models, schemas, database
 
-app = FastAPI(title="Library Management API", version="1.0.0")
+# Create the database tables automatically
+models.Base.metadata.create_all(bind=database.engine)
 
-# Dependency to get the database session
+app = FastAPI(title="Library Management System")
+
+# Dependency to get the DB session
 def get_db():
     db = database.SessionLocal()
     try:
@@ -12,17 +15,22 @@ def get_db():
     finally:
         db.close()
 
-@app.post("/books/", response_model=schemas.Book, status_code=201)
+@app.post("/books/", response_model=schemas.Book)
 def create_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
-    db_book = models.Book(**book.dict())
+    db_book = models.Book(**book.model_dump())
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
     return db_book
 
+@app.get("/books/", response_model=list[schemas.Book])
+def read_books(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    books = db.query(models.Book).offset(skip).limit(limit).all()
+    return books
+
 @app.get("/books/{book_id}", response_model=schemas.Book)
 def read_book(book_id: int, db: Session = Depends(get_db)):
     db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
-    if db_book is None:
+    if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")
     return db_book
