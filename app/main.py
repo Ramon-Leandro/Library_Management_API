@@ -34,3 +34,29 @@ def read_book(book_id: int, db: Session = Depends(get_db)):
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found")
     return db_book
+
+# Update a book
+@app.put("/books/{book_id}", response_model=schemas.Book)
+def update_book(book_id: int, book_update: schemas.BookCreate, db: Session = Depends(get_db)):
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    # Update the fields
+    for key, value in book_update.model_dump().items():
+        setattr(db_book, key, value)
+    
+    db.commit()
+    db.refresh(db_book)
+    return db_book
+
+# Delete a book
+@app.delete("/books/{book_id}")
+def delete_book(book_id: int, db: Session = Depends(get_db)):
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if not db_book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    
+    db.delete(db_book)
+    db.commit()
+    return {"message": "Book deleted successfully"}
